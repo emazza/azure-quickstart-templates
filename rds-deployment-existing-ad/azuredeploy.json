@@ -76,12 +76,16 @@
         "Standard_D2",
         "Standard_D3",
         "Standard_D4",
-        "Standard_D5"
+        "Standard_D5",
+        "Standard_A2_v2",
+        "Standard_A1_v2",
+        "Standard_A4_v2",
+        "Standard_D1_v2"
       ],
       "metadata": {
         "description": "The size of the RDSH VMs"
       },
-      "defaultValue": "Standard_A4"
+      "defaultValue": "Standard_A2_v2"
     }
   },
   "variables": {
