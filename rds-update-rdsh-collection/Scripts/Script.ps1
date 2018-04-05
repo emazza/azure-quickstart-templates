@@ -140,9 +140,10 @@ param(
 		{
 			log "adding new servers $($serversToAdd -join '; ') to session host collection '$collection'..."
 			add-rdsessionhost -collectionname $collection -sessionhost $serversToAdd -ea stop
-		} 
-
-    
+		}
+	
+	#skip these actions as we only want to add new rd servers
+	<#	
 		#  3. put old servers in drain mode
 		#
 		$serversToRemove = $existingServers | ? { -not ($_ -in $newServers) }
@@ -221,6 +222,7 @@ param(
 		{
 			log "nothing to do."
 		}
+	#>
 
 	}
     catch
