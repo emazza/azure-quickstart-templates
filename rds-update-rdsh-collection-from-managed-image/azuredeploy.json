@@ -9,10 +9,10 @@
         "description": "Name of the RDSH collection to update"
       }
     },
-    "rdshTemplateImageUri": {
+    "storageAccountName": {
       "type": "string",
       "metadata": {
-        "description": "URI for the template VHD to use for RDSH instances. For example, https://rdsstorage.blob.core.windows.net/vhds/MyWindowServerOSImage.vhd"
+        "description": "Storage account for diagnostic extension"
       }
     },
     "rdshUpdateIteration": {
@@ -62,14 +62,14 @@
     },
     "existingVnetName": {
       "type": "string",
-      "defaultValue": "vnet",
+      "defaultValue": "rdsvnet",
       "metadata": {
         "description": "VNET name"
       }
     },
     "existingSubnetName": {
       "type": "string",
-      "defaultValue": "Subnet",
+      "defaultValue": "adSubnet",
       "metadata": {
         "description": "Subnet name"
       }
@@ -86,6 +86,12 @@
       "defaultValue": "cb-vm",
       "metadata": {
         "description": "VM name of the connection broker"
+      }
+    },
+    "rdshManagedImageId": {
+      "type": "string",
+      "metadata": {
+        "description": "Id of the managed Image to create the session host from. Example: /subscriptions/553d5db8-21e7-46cc-9a82-99c45a9f8183/resourceGroups/emards/providers/Microsoft.Compute/images/rdsh-image-managed-04092018"
       }
     },
     "_artifactsLocation": {
@@ -107,7 +113,7 @@
 
   "variables": {
     "iteration": "[toLower(parameters('rdshUpdateIteration'))]",
-    "storageAccountName": "[split( split( parameters('rdshTemplateImageUri'), '/')[2], '.' )[0]]",
+    "rdshManagedImageName": "[split(parameters('rdshManagedImageId'),'/' )[8]]",
     "impersonateScript": "https://rdsa46tnvus4gyrmm.blob.core.windows.net/sacarmtemplate/New-ImpersonateUser.ps1",
     "p": {
       "domain": "[concat(' -domain ', parameters('existingDomainName'))]",
@@ -154,7 +160,13 @@
       "location": "[resourceGroup().location]"
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "2016-04-30-preview",
+      "type": "Microsoft.Compute/images",
+      "name": "[variables('rdshManagedImageName')]",
+      "location": "[resourceGroup().location]"
+    },
+    {
+      "apiVersion": "2017-03-30",
       "type": "Microsoft.Compute/virtualMachines",
       "name": "[concat('rdsh-', copyindex(),variables('iteration'))]",
       "location": "[resourceGroup().location]",
@@ -178,18 +190,14 @@
           "adminPassword": "[parameters('existingAdminPassword')]"
         },
         "storageProfile": {
+          "imageReference": {
+            "id": "[parameters('rdshManagedImageId')]"
+          },
           "osDisk": {
-            "name": "[concat('rdsh-', copyindex(),variables('iteration'),'-osDisk')]",
-            "osType": "Windows",
-            "caching": "ReadWrite",
             "createOption": "FromImage",
-            "image": {
-              "uri": "[parameters('rdshTemplateImageUri')]"
-            },
-            "vhd": {
-              "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName')), '2016-01-01').primaryEndpoints.blob, 'vhds/rdsh-', copyindex(), variables('iteration'), '-osdisk.vhd')]"
+            "managedDisk": {
+              "storageAccountType": "Standard_LRS"
             }
-
           }
         },
         "networkProfile": {
@@ -202,7 +210,7 @@
         "diagnosticsProfile": {
           "bootDiagnostics": {
             "enabled": "true",
-            "storageUri": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName')), '2016-01-01').primaryEndpoints.blob]"
+            "storageUri": "[reference(concat('Microsoft.Storage/storageAccounts/', parameters('storageAccountName')), '2016-01-01').primaryEndpoints.blob]"
           }
         }
       },
@@ -254,7 +262,7 @@
       "properties": {
         "publisher": "Microsoft.Compute",
         "type": "CustomScriptExtension",
-        "typeHandlerVersion": "1.8",
+        "typeHandlerVersion": "1.9",
         "autoUpgradeMinorVersion": true,
         "settings": {
           "fileUris": [
